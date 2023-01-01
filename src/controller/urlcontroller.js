@@ -1,5 +1,5 @@
 const UrlModel = require('../model/urlModel')
-const validUrl = require('valid-url')
+const axios = require('axios')
 const shortid = require('shortid')
 const redis = require("redis");
 const { promisify } = require("util");
@@ -44,19 +44,23 @@ const createUrl = async function (req, res) {
             return res.status(400).send({ status: false, message: "Long URL required" })
         }
 
-        if (!(/^(http[s]?:\/\/){0,1}(www\.){0,1}[a-zA-Z0-9\.\-]+\.[a-zA-Z]{2,5}[\.]{0,1}/.test(longUrl))) {
-            return res.status(400).send({ status: false, message: "Invalid LongURL" })
-        }
+      
 
         if (!longUrl) {
             return res.status(400).send({ status: false, message: "please provide required input field" })
         }
 
-        const baseUrl = "http://localhost:3000"
-
-        if (!validUrl.isUri(baseUrl)) {
-            return res.status(400).send({ status: false, message: "invalid base URL" })
+        let obj={
+            method:"get",
+            url:longUrl
         }
+        let urlFound=false
+        let urlF = await axios(obj).then(()=>urlFound=true).catch(()=>{urlFound=false});
+        if(!urlF){
+            return res.status(404).send({status:false,message:"Url does not exist"})
+        }
+
+        const baseUrl = "http://localhost:3000"
 
         const cahcedUrlData = await GET_ASYNC(`${longUrl}`)
 
@@ -140,7 +144,7 @@ const geturl = async function (req, res) {
 
     await SET_ASYNC(`${urlc}`, JSON.stringify(checkurl))
 
-    return res.redirect(checkurl.longUrl)
+    return res.status(302).redirect(checkurl.longUrl)
 
 
 }
